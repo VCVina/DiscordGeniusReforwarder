@@ -1,6 +1,7 @@
 # no env
 .env
 *.env
+*.txt
 
 # Python 
 __pycache__/

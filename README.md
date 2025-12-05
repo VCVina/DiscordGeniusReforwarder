@@ -14,15 +14,21 @@
 同时，还会避免重复转发：
 同一条消息如果已经有人点过指定表情，再点就不会再次转发。
 
+并且，你还可以和它聊天哦。
+
+
 ---
 
 ## 功能特点
-![sample](./img/sample.jpg)
-* **用表情做“收藏按钮”**
-  在任意文本频道对一条消息加上指定的自定义表情（例如 `:Genius:`），Bot 自动转发到目标频道，方便其他高雅人士好好品鉴一番
-  <br/>
-  <img src="./img/eat.jpeg" width="70">
+<br/>
+<img src="./img/sample.jpg"width="500">
 
+### 用表情做收藏按钮
+  在任意文本频道对一条消息加上指定的自定义表情（例如 `:Genius:`），Bot 自动转发到目标频道，方便其他高雅人士好好品鉴一番。
+ 
+  <br/>
+  <img src="./img/eat.jpeg"width="70">
+ 
 * **允许只对“自己”的 reaction 生效**
   可以响应所有群友的reactions，但也可以只有配置的那一个用户 ID（Bot 主人）点 reaction 时才会触发转发，别人乱点不会触发，具体可以参见后面的代码。
 
@@ -38,21 +44,23 @@
 
 * **附带元信息**
   转发消息中会包含：
-
   * 标记人（谁点的表情）
   * 原频道
   * 原作者
   * 原消息跳转链接
 
----
+
+### 可以和机器人聊天
+<br/>
+<img src="./img/chat_sample.png",width="500">
+
+外接ChatGPT等模型的API之后可以和机器人聊天
 
 ## 依赖
 
 * Python 3.10+（推荐）
 * [discord.py](https://github.com/Rapptz/discord.py) v2.x
 * [python-dotenv](https://github.com/theskumar/python-dotenv)（从 `.env` 读取配置必须）
-
----
 
 ## 快速开始
 
@@ -79,7 +87,6 @@
      * `Attach Files`
    * 用生成的链接把 Bot 邀请进你的服务器
 ![BotPermissions](./img/BotPermissions.jpg)
----
 
 ### 2. 项目配置
 
@@ -88,22 +95,33 @@
 在项目根目录创建 `.env`：
 
 ```env
-DISCORD_TOKEN=你的BotToken
-TARGET_CHANNEL_NAME=logs
-TRIGGER_EMOJI_ID=1446321054057369620
-
+DISCORDAPP_TOKEN=你的BotToken
+TARGET_CHANNEL_NAME=转发对象频道
+TRIGGER_EMOJI_ID=144xxxxxxxxxxxxx
+OPENAI_API_KEY=<xxxx>
+MY_USER_ID=<xxxx>
+RESTRICTED_REFORWARED_MODE=False
+RESTRICTED_AICHAT_MODE=False
 ```
 
-* `DISCORD_TOKEN`：Bot 的 Token
-* `TARGET_CHANNEL_NAME`：转发目标频道名字（如 `天才俱乐部`）
+* `DISCORD_TOKEN`
+  * Bot 的 Token
+* `TARGET_CHANNEL_NAME`
+  * 转发目标频道名字
 * `TRIGGER_EMOJI_ID`：触发用自定义表情的 ID
-
   * 在 Discord 里发送 `\:emoji:`
   * 会看到 `<:emoji:xxxxxxxxxxxxxx>` → 拿最后那串数字
-* `MY_USER_ID`：你自己的用户 ID，可选
+* `MY_USER_ID`：你自己的用户 ID，用来实现「只有你才可以使用机器人！」这功能的。
   * 开发者模式 → 右键你的名字 → 复制 ID
+* `OPENAI_API_KEY`：OpenAI给你的API KEY
+  * 或者你用别的也行，总之会给你KEY
+* `RESTRICTED_REFORWARED_MODE=False`
+  * 如果是True的话，只有你才能激活转发
+* `RESTRICTED_AICHAT_MODE=False`
+  * 如果是True的话，只有你才能和机器人聊天
 
----
+另外，如果你要是用聊天功能，需要在根目录下和`Bot.py`并列的位置自己实现一个`aichat_prompt.txt`文件（当然你可以自己DIY别的位置也可以），系统会读取这个文件作为NPC的个性化文本条件。
+
 
 ### 3. 运行
 
@@ -137,14 +155,12 @@ Logged in as EmojiForwarderBot (ID: xxxxxxxxxxxxxxxx)
   * 更新 `.env` 中的 Token
 * 建议将 `.env` 或 `config.py` 加入 `.gitignore`，只提交无敏感信息的代码。
 
----
 ## 📝 TODO / 可扩展点
 
+* 想玩一下ChatGPT其实……（已实现）
 * 支持「多种表情 → 不同分类频道」的规则
   （例如 `:eat:` → `#logs`，`:star:` → `#favorites`）
 * 增加指令：
   * `!ping` / `!health` 检查 Bot 状态
   * `!setchannel logs` 游戏内动态修改目标频道
 * 将配置拆成 JSON/YAML，支持多人共同维护
-
-* 想玩一下ChatGPT其实……

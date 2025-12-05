@@ -2,13 +2,21 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from openai import OpenAI
+from pathlib import Path
 
 # ===== config =====
-load_dotenv()  # load .env 文件
+load_dotenv()  # load .env
 
 TOKEN = os.getenv("DISCORDAPP_TOKEN")
-TARGET_CHANNEL_NAME = os.getenv("TARGET_CHANNEL_NAME", "天才俱乐部")  # target channel name
+TARGET_CHANNEL_NAME = os.getenv("TARGET_CHANNEL_NAME", "default")  # target channel name
 TRIGGER_EMOJI = int(os.getenv("TRIGGER_EMOJI", "1446321054057369620"))         # trigger emoji id
+client = OpenAI()
+RESTRICTED_REFORWARED_MODE = True if os.getenv("RESTRICTED_REFORWARED_MODE", "false").lower() == "true" else False
+RESTRICTED_AICHAT_MODE = True if os.getenv("RESTRICTED_AICHAT_MODE", "false").lower() == "true" else False
+MY_USER_ID = int(os.getenv("MY_USER_ID"))  # User ID
+PROMPT_PATH = Path(__file__).with_name("aichat_prompt.txt")
+SYSTEM_PROMPT = ""
 
 # ===== Intents =====
 intents = discord.Intents.default()
@@ -19,6 +27,12 @@ intents.members = True          # member
 intents.reactions = True         # reaction
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+try:
+    SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8")
+except FileNotFoundError:
+    # If the file does not exist, provide a very short persona as fallback
+    SYSTEM_PROMPT = "你是一个懒洋洋又自恋的天才学者型NPC，用简体中文简短回答问题。"
+    print(f"[WARN] aichat_prompt.txt not found, using fallback SYSTEM_PROMPT")
 
 @bot.event
 async def on_ready():
@@ -33,6 +47,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     print("emoji.id:", payload.emoji.id)
     print("emoji.name:", payload.emoji.name)
     print("guild_id:", payload.guild_id, "channel_id:", payload.channel_id, "message_id:", payload.message_id)
+    print("Access Mode:", RESTRICTED_REFORWARED_MODE)
 
     # 1. ignore bot itself
     # if payload.user_id == bot.user.id:
@@ -40,10 +55,10 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     #     return
 
     # 2. only handle your own reactions
-    # if payload.user_id != MY_USER_ID:
-    #     print(" -> ignore: not my reaction")
-    #     return
-
+    if payload.user_id != MY_USER_ID:
+        if RESTRICTED_REFORWARED_MODE:
+            print(f" -> ignore: reaction from user_id {payload.user_id} ")
+            return
     # 3. check if it's the target custom emoji (by ID)
     if payload.emoji.id != TRIGGER_EMOJI:
        print(f" -> ignore: emoji id {payload.emoji.id} != {TRIGGER_EMOJI}")
@@ -173,5 +188,58 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     except Exception as e:
         print(" -> error when fetching message:", e)
         return
+
+@bot.event
+@bot.event
+async def on_message(message: discord.Message):
+    # 1. ignore bot messages
+    print("AIChat Access Mode:", RESTRICTED_AICHAT_MODE)
+    if message.author.bot:
+        return
+
+    # Debug: check if the event is triggered
+    print("[on_message] from:", message.author, "content:", message.content)
+
+    # 2. Check if the bot was mentioned
+    if bot.user in message.mentions:
+        print("[on_message] bot was mentioned")
+        if message.author.id != MY_USER_ID:
+            if RESTRICTED_AICHAT_MODE:
+                print(f" -> ignore: message from user_id {message.author.id} ")
+                return
+        # Remove the @Bot mention part, keep only the actual question
+        content = message.content.replace(bot.user.mention, "").strip()
+        if not content:
+            await message.reply("你有什么问题就问，我很忙。")
+            return
+
+        print("[on_message] user content:", content)
+
+        # 3. Call OpenAI Chat Completions
+        try:
+            completion = client.chat.completions.create(
+                model="gpt-5.1",  # or the model you actually can use
+                messages=[
+                    {"role": "developer", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": content},
+                ],
+            )
+            reply = completion.choices[0].message.content
+            print("[on_message] openai reply:", repr(reply))
+        except Exception as e:
+            print("OpenAI API error:", repr(e))
+            reply = "(已读)"
+
+        # 4. reply to the message
+        try:
+            await message.reply(reply)
+            print("[on_message] replied successfully")
+        except Exception as e:
+            print("[on_message] reply failed:", repr(e))
+        return
+
+    # 5. If the message is not @bot, hand it back to the command system
+    await bot.process_commands(message)
+
 
 bot.run(TOKEN)

@@ -23,8 +23,8 @@
   <br/>
   <img src="./img/eat.jpeg" width="70">
 
-* **只对“自己”的 reaction 生效**
-  只有配置的那一个用户 ID（Bot 主人）点 reaction 时才会触发转发，别人乱点不会触发。
+* **允许只对“自己”的 reaction 生效**
+  可以响应所有群友的reactions，但也可以只有配置的那一个用户 ID（Bot 主人）点 reaction 时才会触发转发，别人乱点不会触发，具体可以参见后面的代码。
 
 * **防止重复转发**
   如果这条消息上早就有这个表情（`Genius` 的计数 > 1），就直接跳过，避免刷屏。
@@ -75,8 +75,8 @@
      * `View Channels`
      * `Send Messages`
      * `Read Message History`
-     * `Embed Links`（可选）
-     * `Attach Files`（可选）
+     * `Embed Links`
+     * `Attach Files`
    * 用生成的链接把 Bot 邀请进你的服务器
 ![BotPermissions](./img/BotPermissions.jpg)
 ---

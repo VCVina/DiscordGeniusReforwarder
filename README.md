@@ -1,6 +1,6 @@
 
 ---
-![genius](./genius.png)
+![genius](./img/genius.png)
 # Genius Forwarder Bot
 
 当你在频道里看到「值得收藏 / 存档」的消息时，只要用指定的自定义表情点一下 reaction，这个 Bot 就会**自动把那条消息转发到指定频道**（比如 `#logs` / `#favorites`），并附上：
@@ -17,10 +17,11 @@
 ---
 
 ## 功能特点
-![sample](./sample.jpg)
+![sample](./img/sample.jpg)
 * **用表情做“收藏按钮”**
   在任意文本频道对一条消息加上指定的自定义表情（例如 `:Genius:`），Bot 自动转发到目标频道，方便其他高雅人士好好品鉴一番
-  ![品鉴中。。](./eat.jpeg)
+  <br/>
+  <img src="./img/eat.jpeg" width="70">
 
 * **只对“自己”的 reaction 生效**
   只有配置的那一个用户 ID（Bot 主人）点 reaction 时才会触发转发，别人乱点不会触发。
@@ -30,6 +31,7 @@
 
 * **保留链接预览**
   原消息里的 X/Twitter 链接等，会在转发后的消息中照样自动生成预览卡片（不被 embed 覆盖）。
+  * 这个好难学的请你务必表扬我一下……
 
 * **转发附件**
   原消息中如果有图片 / 文件，会被下载后重新发到目标频道。
@@ -76,7 +78,7 @@
      * `Embed Links`（可选）
      * `Attach Files`（可选）
    * 用生成的链接把 Bot 邀请进你的服务器
-![BotPermissions](./BotPermissions.jpg)
+![BotPermissions](./img/BotPermissions.jpg)
 ---
 
 ### 2. 项目配置

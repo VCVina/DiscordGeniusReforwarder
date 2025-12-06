@@ -12,7 +12,7 @@ TOKEN = os.getenv("DISCORDAPP_TOKEN")
 TARGET_CHANNEL_NAME = os.getenv("TARGET_CHANNEL_NAME", "default")  # target channel name
 TRIGGER_EMOJI = int(os.getenv("TRIGGER_EMOJI", "1446321054057369620"))         # trigger emoji id
 client = OpenAI()
-RESTRICTED_REFORWARED_MODE = True if os.getenv("RESTRICTED_REFORWARED_MODE", "false").lower() == "true" else False
+RESTRICTED_REFORWARD_MODE = True if os.getenv("RESTRICTED_REFORWARD_MODE", "false").lower() == "true" else False
 RESTRICTED_AICHAT_MODE = True if os.getenv("RESTRICTED_AICHAT_MODE", "false").lower() == "true" else False
 MY_USER_ID = int(os.getenv("MY_USER_ID"))  # User ID
 PROMPT_PATH = Path(__file__).with_name("aichat_prompt.txt")
@@ -47,7 +47,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     print("emoji.id:", payload.emoji.id)
     print("emoji.name:", payload.emoji.name)
     print("guild_id:", payload.guild_id, "channel_id:", payload.channel_id, "message_id:", payload.message_id)
-    print("Access Mode:", RESTRICTED_REFORWARED_MODE)
+    print("Access Mode:", RESTRICTED_REFORWARD_MODE)
 
     # 1. ignore bot itself
     # if payload.user_id == bot.user.id:
@@ -56,7 +56,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
     # 2. only handle your own reactions
     if payload.user_id != MY_USER_ID:
-        if RESTRICTED_REFORWARED_MODE:
+        if RESTRICTED_REFORWARD_MODE:
             print(f" -> ignore: reaction from user_id {payload.user_id} ")
             return
     # 3. check if it's the target custom emoji (by ID)

@@ -100,7 +100,7 @@ TARGET_CHANNEL_NAME=转发对象频道
 TRIGGER_EMOJI_ID=144xxxxxxxxxxxxx
 OPENAI_API_KEY=<xxxx>
 MY_USER_ID=<xxxx>
-RESTRICTED_REFORWARED_MODE=False
+RESTRICTED_REFORWARD_MODE=False
 RESTRICTED_AICHAT_MODE=False
 ```
 
@@ -115,7 +115,7 @@ RESTRICTED_AICHAT_MODE=False
   * 开发者模式 → 右键你的名字 → 复制 ID
 * `OPENAI_API_KEY`：OpenAI给你的API KEY
   * 或者你用别的也行，总之会给你KEY
-* `RESTRICTED_REFORWARED_MODE=False`
+* `RESTRICTED_REFORWARD_MODE=False`
   * 如果是True的话，只有你才能激活转发
 * `RESTRICTED_AICHAT_MODE=False`
   * 如果是True的话，只有你才能和机器人聊天

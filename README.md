@@ -1,3 +1,165 @@
+![genius](./img/genius.png)
+# Genius Forwarder Bot
+
+When you encounter a message in a channel that is **worth saving or archiving**, simply react to it with a designated custom emoji, and this bot will **automatically forward that message to a specified channel** (such as `#logs` or `#favorites`), along with:
+
+* Original author  
+* Original channel  
+* Original message link (clickable, jumps back to the original message)  
+* Original message content  
+* Attachments (images / files, etc.)
+
+At the same time, duplicate forwarding is prevented:  
+If a message has already been reacted to with the designated emoji, reacting again will not trigger another forward.
+
+Additionally, you can also chat with the bot.
+
+
+---
+
+## Features
+<br/>
+<img src="./img/sample.jpg"width="500">
+
+### Use Emoji as a Save Button
+  Add a designated custom emoji (for example, `:Genius:`) as a reaction to any message in any text channel, and the bot will automatically forward it to the target channel, making it convenient for other refined individuals to properly appreciate it.
+ 
+  <br/>
+  <img src="./img/eat.jpeg"width="70">
+ 
+* **Allow reactions from “yourself only”**
+  The bot can respond to reactions from everyone, or be configured so that only reactions from a specific user ID (the bot owner) will trigger forwarding. Reactions from others will be ignored. See the code below for details.
+
+* **Prevent duplicate forwarding**
+  If the message already has this emoji (i.e. the `Genius` count > 1), it will be skipped to avoid spam.
+
+* **Preserve link previews**
+  Links in the original message (such as X/Twitter links) will still automatically generate preview cards in the forwarded message (not overridden by embeds).
+  * This part was really hard to learn, please make sure to praise me…
+
+* **Forward attachments**
+  If the original message contains images or files, they will be downloaded and re-sent to the target channel.
+
+* **Include metadata**
+  The forwarded message will contain:
+  * The marker (who reacted with the emoji)
+  * Original channel
+  * Original author
+  * Jump link to the original message
+
+
+### Chat with the Bot
+<br/>
+<img src="./img/chat_sample.png",width="500">
+
+After connecting APIs such as ChatGPT or other models, you can chat with the bot.
+
+## Dependencies
+
+* Python 3.10+ (recommended)
+* [discord.py](https://github.com/Rapptz/discord.py) v2.x
+* [python-dotenv](https://github.com/theskumar/python-dotenv) (required for loading configuration from `.env`)
+
+## Quick Start
+
+### 1. Create a Bot and Obtain the Token
+
+1. Open the Discord Developer Portal → Create a new application → Add a Bot
+
+2. On the **Bot** page:
+
+   * Enable:
+     * `MESSAGE CONTENT INTENT`
+     * `SERVER MEMBERS INTENT`
+   * Copy the Bot Token (note: **do not leak it**)
+
+3. In **OAuth2 → URL Generator**:
+
+   * Scopes: check `bot`
+   * Permissions must include at least:
+
+     * `View Channels`
+     * `Send Messages`
+     * `Read Message History`
+     * `Embed Links`
+     * `Attach Files`
+   * Use the generated link to invite the bot to your server
+![BotPermissions](./img/BotPermissions.jpg)
+
+### 2. Project Configuration
+
+It is recommended to use a `.env` file to store sensitive configuration.
+
+Create a `.env` file in the project root directory:
+
+```env
+DISCORDAPP_TOKEN=yourBotToken
+TARGET_CHANNEL_NAME=target_channel
+TRIGGER_EMOJI_ID=144xxxxxxxxxxxxx
+OPENAI_API_KEY=<xxxx>
+MY_USER_ID=<xxxx>
+RESTRICTED_REFORWARD_MODE=False
+RESTRICTED_AICHAT_MODE=False
+```
+
+* `DISCORD_TOKEN`
+  * The bot token
+* `TARGET_CHANNEL_NAME`
+  * Name of the target channel for forwarding
+* `TRIGGER_EMOJI_ID`: ID of the custom emoji used as the trigger
+  * Send `\:emoji:` in Discord
+  * You will see `<:emoji:xxxxxxxxxxxxxx>` → take the numeric part at the end
+* `MY_USER_ID`: Your own user ID, used to enable the “only you can use the bot” feature.
+  * Developer Mode → Right-click your username → Copy ID
+* `OPENAI_API_KEY`: Your OpenAI API key
+  * Or any other provider’s key is fine, as long as you have one
+* `RESTRICTED_REFORWARD_MODE=False`
+  * If set to True, only you can trigger forwarding
+* `RESTRICTED_AICHAT_MODE=False`
+  * If set to True, only you can chat with the bot
+
+Additionally, if you want to use the chat feature, you need to create an `aichat_prompt.txt` file in the root directory alongside `Bot.py` (you may DIY another location if you wish).  
+The system will read this file as the NPC’s personalized prompt text.
+
+### 3. Run
+
+Install dependencies:
+
+```bash
+pip install -U discord.py python-dotenv
+```
+Run
+```bash
+python bot.py
+```
+
+If the terminal shows something similar to:
+```bash
+Logged in as EmojiForwarderBot (ID: xxxxxxxxxxxxxxxx)
+------
+```
+
+It indicates the connection was successful.
+
+## 🔐 Security Notes
+
+* **Never** write the bot token directly into code and upload it to a public repository or share it with others.
+* If the token is accidentally leaked (even if it was only pasted to an AI or appeared in a screenshot), make sure to:
+
+  * Immediately go to Developer Portal → Bot → Reset Token
+  * Update the token in `.env`
+* It is recommended to add `.env` or `config.py` to `.gitignore` and only commit code without sensitive information.
+
+## 📝 TODO / Extensibility
+
+* ~~Just wanted to play with ChatGPT…~~ (already implemented)
+* Support rules like “multiple emojis → different categorized channels”
+  (for example, `:eat:` → `#logs`, `:star:` → `#favorites`)
+* Add commands:
+  * `!ping` / `!health` to check bot status
+  * `!setchannel logs` to dynamically modify the target channel at runtime
+* Split configuration into JSON/YAML to support collaborative maintenance
+
 
 ---
 ![genius](./img/genius.png)
@@ -18,6 +180,7 @@
 
 
 ---
+# Chinese Version
 
 ## 功能特点
 <br/>
@@ -157,7 +320,7 @@ Logged in as EmojiForwarderBot (ID: xxxxxxxxxxxxxxxx)
 
 ## 📝 TODO / 可扩展点
 
-* 想玩一下ChatGPT其实……（已实现）
+* ~~想玩一下ChatGPT其实……~~（已实现）
 * 支持「多种表情 → 不同分类频道」的规则
   （例如 `:eat:` → `#logs`，`:star:` → `#favorites`）
 * 增加指令：

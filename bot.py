@@ -209,19 +209,47 @@ async def on_message(message: discord.Message):
                 return
         # Remove the @Bot mention part, keep only the actual question
         content = message.content.replace(bot.user.mention, "").strip()
-        if not content:
+
+        image_urls = []
+        for att in message.attachments:
+            # content_type "image/png""image/jpeg"
+            if att.content_type and att.content_type.startswith("image/"):
+                image_urls.append(att.url)
+                print(f"[on_message] found image attachment: {att.filename} ({att.url})")
+
+        if not content and not image_urls:
             await message.reply("你有什么问题就问，我很忙。")
             return
+        user_content_parts = []
+        if content:
+            user_content_parts.append({
+                "type": "text",
+                "text": content,
+            })
+        else:
+            user_content_parts.append({
+                "type": "text",
+                "text": "请说明这个图片中有什么内容。",
+            })
 
+        for url in image_urls:
+            user_content_parts.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": url,
+                },
+            })    
         print("[on_message] user content:", content)
+        print("[on_message] image count:", len(image_urls))
 
         # 3. Call OpenAI Chat Completions
         try:
             completion = client.chat.completions.create(
-                model="gpt-5.1",  # or the model you actually can use
+                model="gpt-5-mini",  # model
+                #reasoning={"effort": "high"},
                 messages=[
-                    {"role": "developer", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": content},
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content_parts},
                 ],
             )
             reply = completion.choices[0].message.content

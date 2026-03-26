@@ -1,4 +1,5 @@
 import os
+import re
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -18,6 +19,10 @@ MY_USER_ID = int(os.getenv("MY_USER_ID"))  # User ID
 PROMPT_PATH = Path(__file__).with_name("aichat_prompt.txt")
 SYSTEM_PROMPT = ""
 
+CONVERSATION_HISTORY_LIMIT = int(os.getenv("CONVERSATION_HISTORY_LIMIT"))  # per channel
+
+conversation_history = {}  # channel_id -> list[{"author": str, "content": str}]
+
 # ===== Intents =====
 intents = discord.Intents.default()
 intents.guilds = True
@@ -33,6 +38,39 @@ except FileNotFoundError:
     # If the file does not exist, provide a very short persona as fallback
     SYSTEM_PROMPT = "你是一个懒洋洋又自恋的天才学者型NPC，用简体中文简短回答问题。"
     print(f"[WARN] aichat_prompt.txt not found, using fallback SYSTEM_PROMPT")
+import re
+
+# 本地规则返回：("ALLOW"|"BLOCK"|"DOWNGRADE", reason)
+def local_policy_check(text: str):
+    t = (text or "").strip()
+    if not t:
+        return ("ALLOW", "empty")
+
+    # 规则 2：对受保护群体的整体贬损/控制倾向（示例：性别）
+    # 这不是完美 NLP，只是低成本的“守门员”
+    group_words = ["女人", "女性", "女生", "女的", "母人", "男人", "男性", "男的", "废物", "垃圾", "傻逼", "弱智", "畜生", "滚", "去死"]
+    if any(w in t for w in group_words):
+        return ("BLOCK", "group_derogatory_or_control")
+    
+    # 规则 3：NSFW/未成年人等你想更严格的（建议仍交给 OpenAI）
+    # 本地只做极少量“硬挡”，避免误杀
+    return ("ALLOW", "ok")
+
+def build_moderation_input(text: str, image_urls: list[str] | None = None):
+    items = [{"type": "text", "text": text or ""}]
+    if image_urls:
+        for url in image_urls[:4]:  # 可选：限制最多审 4 张，避免太慢
+            items.append({"type": "image_url", "image_url": {"url": url}})
+    return items
+
+def is_flagged_by_openai(text: str, image_urls: list[str] | None = None) -> bool:
+    # omni-moderation-latest 支持文本+图片输入
+    resp = client.moderations.create(
+        model="omni-moderation-latest",
+        input=build_moderation_input(text, image_urls),
+    )
+    # 取第一个结果的 flagged
+    return bool(resp.results[0].flagged)
 
 @bot.event
 async def on_ready():
@@ -112,6 +150,40 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
         jump_url = message.jump_url  
         content = message.content or "(原消息没有文字内容)"
 
+        # ===== [NEW] moderation gate before forwarding =====
+        # 只审“将要转发”的内容：文字 + 附件图片（可选）
+        att_image_urls = []
+        for att in message.attachments:
+            fn = (att.filename or "").lower()
+            is_img = False
+            if att.content_type and att.content_type.startswith("image/"):
+                is_img = True
+            elif fn.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")):
+                is_img = True
+            if is_img:
+                att_image_urls.append(att.url)
+
+        text_to_check = message.content or ""
+        
+        # local policy gate (before forwarding)
+        action, reason = local_policy_check(message.content or "")
+        if action == "BLOCK":
+            print(f" -> local policy blocked forwarding: {reason}")
+            return
+
+        try:
+            flagged = is_flagged_by_openai(text_to_check, att_image_urls if att_image_urls else None)
+        except Exception as e:
+            print(" -> moderation error, choose to block forwarding:", repr(e))
+            return
+
+        if flagged:
+            print(" -> moderation flagged: block forwarding")
+            # 你可以选择：不转发，或者转发一条“被拦截”的提示到 logs（可选）
+            # await target_channel.send("有一条消息因内容审核未通过，已拦截。")
+            return
+        
+    
         embed = discord.Embed(
             description=content,
             timestamp=message.created_at,
@@ -190,7 +262,6 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
         return
 
 @bot.event
-@bot.event
 async def on_message(message: discord.Message):
     # 1. ignore bot messages
     print("AIChat Access Mode:", RESTRICTED_AICHAT_MODE)
@@ -200,6 +271,17 @@ async def on_message(message: discord.Message):
     # Debug: check if the event is triggered
     print("[on_message] from:", message.author, "content:", message.content)
 
+    channel_id = message.channel.id
+    author_name = getattr(message.author, "display_name", None) or str(message.author)
+
+    hist = conversation_history.setdefault(channel_id, [])
+    hist.append({
+        "author": author_name,
+        "content": message.content or "",
+    })
+    if len(hist) > CONVERSATION_HISTORY_LIMIT:
+        hist.pop(0)
+        
     # 2. Check if the bot was mentioned
     if bot.user in message.mentions:
         print("[on_message] bot was mentioned")
@@ -221,6 +303,22 @@ async def on_message(message: discord.Message):
             await message.reply("你有什么问题就问，我很忙。")
             return
         user_content_parts = []
+        hist = conversation_history.get(message.channel.id, [])
+        hist_for_context = hist[:-1]  # exclude the current message we just appended
+        context_lines = []
+        for h in hist_for_context:
+            txt = (h.get("content") or "").strip()
+            if not txt:
+                continue
+            # 一行一个：用户名: 内容
+            context_lines.append(f"{h.get('author','unknown')}: {txt}")
+
+        if context_lines:
+            context_text = "\n".join(context_lines)
+            user_content_parts.append({
+                "type": "text",
+                "text": f"以下是本频道最近的聊天记录，用于理解上下文：\n{context_text}\n---",
+            })
         if content:
             user_content_parts.append({
                 "type": "text",
